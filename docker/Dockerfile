@@ -5,6 +5,9 @@
 
 FROM node:20-slim AS web-builder
 
+ARG NPM_REGISTRY
+RUN if [ -n "$NPM_REGISTRY" ]; then npm config set registry "$NPM_REGISTRY"; fi
+
 WORKDIR /app/apps/dsa-web
 
 COPY apps/dsa-web/package.json apps/dsa-web/package-lock.json ./
@@ -18,6 +21,12 @@ FROM python:3.11-slim-bookworm
 
 # 设置工作目录
 WORKDIR /app
+
+# 可选：替换 apt 源为国内镜像（通过 --build-arg APT_MIRROR=mirrors.tuna.tsinghua.edu.cn）
+ARG APT_MIRROR
+RUN if [ -n "$APT_MIRROR" ]; then \
+      sed -i "s|deb.debian.org|${APT_MIRROR}|g" /etc/apt/sources.list.d/debian.sources; \
+    fi
 
 # 设置时区为上海
 ENV TZ=Asia/Shanghai
@@ -38,7 +47,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 
 # 安装 Python 依赖
-RUN pip install --no-cache-dir -r requirements.txt
+ARG PIP_INDEX_URL
+ARG PIP_TRUSTED_HOST
+RUN pip install --no-cache-dir \
+    ${PIP_INDEX_URL:+--index-url "$PIP_INDEX_URL"} \
+    ${PIP_TRUSTED_HOST:+--trusted-host "$PIP_TRUSTED_HOST"} \
+    -r requirements.txt
 
 # 复制应用代码
 COPY *.py ./

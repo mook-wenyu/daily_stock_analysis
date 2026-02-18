@@ -224,14 +224,15 @@ OPENAI_MODEL=deepseek-chat
 
 ### Q15: 中国大陆无法拉取 Docker Hub 镜像？
 
-**现象**：执行 `docker pull` 或 `docker-compose build` 时超时或报错 `TLS handshake timeout` / `connection refused`。
+**现象**：执行 `docker pull` 或 `docker-compose build` 时超时或报错 `TLS handshake timeout` / `connection refused`；或构建过程卡在 `apt-get update` 阶段（从 `deb.debian.org` 下载 390 秒仍未完成）。
 
-**原因**：自 2024 年 6 月起，国内主要 Docker Hub 镜像站（如阿里云、中科大等）陆续关停，导致国内服务器无法直接访问 Docker Hub。
+**原因**：自 2024 年 6 月起，国内主要 Docker Hub 镜像站（如阿里云、中科大等）陆续关停，导致国内服务器无法直接访问 Docker Hub。同时 Dockerfile 内部的 `apt-get`、`pip install`、`npm ci` 默认使用海外源，国内网络环境下速度极差。
 
 **解决方案**：
-1. 配置 Docker daemon 镜像加速器（推荐）
+1. 配置 Docker daemon 镜像加速器（解决基础镜像拉取）
 2. 构建时通过 `--build-arg` 指定 registry 前缀
-3. pip/npm 构建阶段使用国内源加速
+3. pip/npm 构建阶段使用国内源加速（`PIP_INDEX_URL` / `NPM_REGISTRY`）
+4. apt 软件源加速（`APT_MIRROR`，解决 `apt-get update` 卡顿）
 
 > 📖 详细操作步骤请参考 [部署指南 - 2.5 中国大陆 Docker 镜像加速](DEPLOY.md#25-中国大陆-docker-镜像加速可选)
 

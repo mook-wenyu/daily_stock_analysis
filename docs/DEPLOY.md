@@ -94,15 +94,71 @@ docker-compose -f ./docker/docker-compose.yml build \
 
 #### 方法三：pip / npm 加速（构建阶段）
 
-在 `docker-compose build` 时通过 `--build-arg` 传入国内源：
+Dockerfile 已内置 `PIP_INDEX_URL` 和 `NPM_REGISTRY` 两个 `ARG`，构建时通过 `--build-arg` 或 `.env` 文件即可注入国内源：
 
 ```bash
+# 方式一：命令行传参
 docker-compose -f ./docker/docker-compose.yml build \
   --build-arg PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple \
+  --build-arg PIP_TRUSTED_HOST=pypi.tuna.tsinghua.edu.cn \
   --build-arg NPM_REGISTRY=https://registry.npmmirror.com
 ```
 
-> 💡 此方法仅加速 pip/npm 包下载，不解决基础镜像拉取问题，建议与方法一或方法二配合使用。
+```bash
+# 方式二：写入 .env 文件（docker-compose 自动读取，无需 --build-arg）
+PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+PIP_TRUSTED_HOST=pypi.tuna.tsinghua.edu.cn
+NPM_REGISTRY=https://registry.npmmirror.com
+```
+
+> 💡 此方法仅加速 pip/npm 包下载，不解决基础镜像拉取和 apt 下载问题，建议与方法一和方法四配合使用。
+
+#### 方法四：apt 软件源加速（构建阶段）
+
+Debian bookworm 的 `apt-get update` 默认从 `deb.debian.org` 下载软件包索引，国内服务器访问极慢（常卡在 390s+ 甚至超时）。Dockerfile 已内置 `APT_MIRROR` ARG，可将 apt 源替换为国内镜像：
+
+```bash
+# 命令行传参
+docker-compose -f ./docker/docker-compose.yml build \
+  --build-arg APT_MIRROR=mirrors.tuna.tsinghua.edu.cn
+```
+
+```bash
+# 或写入 .env 文件
+APT_MIRROR=mirrors.tuna.tsinghua.edu.cn
+```
+
+**一键构建命令（同时启用 apt + pip + npm 国内加速）：**
+
+```bash
+docker-compose -f ./docker/docker-compose.yml build --no-cache \
+  --build-arg APT_MIRROR=mirrors.tuna.tsinghua.edu.cn \
+  --build-arg PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple \
+  --build-arg PIP_TRUSTED_HOST=pypi.tuna.tsinghua.edu.cn \
+  --build-arg NPM_REGISTRY=https://registry.npmmirror.com
+```
+
+或在 `.env` 中配置后直接构建（无需 `--build-arg`）：
+
+```bash
+# .env 中添加：
+APT_MIRROR=mirrors.tuna.tsinghua.edu.cn
+PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+PIP_TRUSTED_HOST=pypi.tuna.tsinghua.edu.cn
+NPM_REGISTRY=https://registry.npmmirror.com
+```
+
+```bash
+docker-compose -f ./docker/docker-compose.yml build --no-cache
+```
+
+**可用的 apt 镜像站：**
+
+| 镜像站 | APT_MIRROR 值 |
+|--------|---------------|
+| 清华大学 TUNA | `mirrors.tuna.tsinghua.edu.cn` |
+| 中国科学技术大学 | `mirrors.ustc.edu.cn` |
+| 阿里云 | `mirrors.aliyun.com` |
 
 #### 当前可用的社区镜像站
 
