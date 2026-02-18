@@ -222,9 +222,24 @@ OPENAI_MODEL=deepseek-chat
 
 ---
 
+### Q15: 中国大陆无法拉取 Docker Hub 镜像？
+
+**现象**：执行 `docker pull` 或 `docker-compose build` 时超时或报错 `TLS handshake timeout` / `connection refused`。
+
+**原因**：自 2024 年 6 月起，国内主要 Docker Hub 镜像站（如阿里云、中科大等）陆续关停，导致国内服务器无法直接访问 Docker Hub。
+
+**解决方案**：
+1. 配置 Docker daemon 镜像加速器（推荐）
+2. 构建时通过 `--build-arg` 指定 registry 前缀
+3. pip/npm 构建阶段使用国内源加速
+
+> 📖 详细操作步骤请参考 [部署指南 - 2.5 中国大陆 Docker 镜像加速](DEPLOY.md#25-中国大陆-docker-镜像加速可选)
+
+---
+
 ## 🔧 其他问题
 
-### Q15: 如何只运行大盘复盘，不分析个股？
+### Q16: 如何只运行大盘复盘，不分析个股？
 
 **方法**：
 ```bash
@@ -237,7 +252,7 @@ python main.py --market-only
 
 ---
 
-### Q16: 分析结果中买入/观望/卖出数量统计不对？
+### Q17: 分析结果中买入/观望/卖出数量统计不对？
 
 **原因**：早期版本使用正则匹配统计，可能与实际建议不一致。
 

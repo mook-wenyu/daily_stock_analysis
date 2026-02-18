@@ -42,6 +42,79 @@ cp .env.example .env
 vim .env  # 填入真实的 API Key 等配置
 ```
 
+### 2.5 中国大陆 Docker 镜像加速（可选）
+
+> 自 2024 年 6 月起，国内主要 Docker Hub 镜像站陆续关停，阿里云 ECS 等国内服务器可能无法直接拉取 `node:20-slim`、`python:3.11-slim-bookworm` 等基础镜像。以下提供三种解决方案。
+
+#### 方法一：配置 Docker daemon 镜像加速器
+
+编辑（或创建）`/etc/docker/daemon.json`：
+
+```json
+{
+  "registry-mirrors": [
+    "https://docker.1ms.run",
+    "https://docker.xuanyuan.me"
+  ]
+}
+```
+
+重启 Docker 使配置生效：
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+```
+
+验证加速是否生效：
+
+```bash
+docker info | grep -A 5 "Registry Mirrors"
+docker pull node:20-slim
+```
+
+#### 方法二：构建时指定 registry 前缀（无需改 Dockerfile）
+
+直接拉取带前缀的镜像后重新打 tag：
+
+```bash
+docker pull docker.1ms.run/library/python:3.11-slim-bookworm
+docker tag docker.1ms.run/library/python:3.11-slim-bookworm python:3.11-slim-bookworm
+
+docker pull docker.1ms.run/library/node:20-slim
+docker tag docker.1ms.run/library/node:20-slim node:20-slim
+```
+
+如果 Dockerfile 支持 `ARG REGISTRY_PREFIX`，也可在构建时传入：
+
+```bash
+docker-compose -f ./docker/docker-compose.yml build \
+  --build-arg REGISTRY_PREFIX=docker.1ms.run/library/
+```
+
+#### 方法三：pip / npm 加速（构建阶段）
+
+在 `docker-compose build` 时通过 `--build-arg` 传入国内源：
+
+```bash
+docker-compose -f ./docker/docker-compose.yml build \
+  --build-arg PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple \
+  --build-arg NPM_REGISTRY=https://registry.npmmirror.com
+```
+
+> 💡 此方法仅加速 pip/npm 包下载，不解决基础镜像拉取问题，建议与方法一或方法二配合使用。
+
+#### 当前可用的社区镜像站
+
+| 镜像站 | 地址 |
+|--------|------|
+| 1ms.run | `https://docker.1ms.run` |
+| 玄元镜像 | `https://docker.xuanyuan.me` |
+| 毫秒镜像 | `https://docker.hlyun.org` |
+| DaoCloud | `https://docker.m.daocloud.io` |
+
+> ⚠️ 社区镜像站可用性随时可能变化，如遇不可用请搜索"Docker Hub 国内镜像"获取最新可用站点。
+
 ### 3. 一键启动
 
 ```bash
